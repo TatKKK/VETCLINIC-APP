@@ -8,7 +8,7 @@ namespace Function.Models
 {
     public static class UserRoles
     {
-        public const string Customer = "Customer";
+        public const string Client = "Client";
         public const string Veterinarian = "Veterinarian";
         public const string Receptionist = "Receptionist";
         public const string Admin = "Admin";

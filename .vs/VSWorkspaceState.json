@@ -5,8 +5,11 @@
     "\\vetclinic-backend-app\\dnapp",
     "\\vetclinic-backend-app\\dnapp\\lambdas",
     "\\vetclinic-backend-app\\dnapp\\lambdas\\api_handler",
-    "\\vetclinic-backend-app\\dnapp\\lambdas\\api_handler\\Repositories"
+    "\\vetclinic-backend-app\\dnapp\\lambdas\\api_handler\\Repositories",
+    "\\vetclinic-backend-app\\dnapp\\lambdas\\api_handler\\Repositories\\Abstract",
+    "\\vetclinic-backend-app\\dnapp\\lambdas\\api_handler\\Services",
+    "\\vetclinic-backend-app\\dnapp\\lambdas\\api_handler\\Services\\Concrete"
   ],
-  "SelectedNode": "\\vetclinic-backend-app\\dnapp\\lambdas\\api_handler\\Repositories\\Abstract",
+  "SelectedNode": "\\vetclinic-backend-app\\dnapp\\lambdas\\api_handler\\Services\\Concrete",
   "PreviewInSolutionExplorer": false
 }
