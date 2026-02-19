@@ -10,6 +10,6 @@ namespace Function.Models
     {
         public string Sub { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
-        public string Role { get; set; } = UserRoles.Customer;
+        public string Role { get; set; } = UserRoles.Client;
     }
 }

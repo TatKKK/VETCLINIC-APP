@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
@@ -9,86 +10,94 @@ using Function.Repositories.Abstract;
 
 namespace Function.Repositories.Concrete
 {
-    /// <summary>
-    /// DynamoDB implementation of user profile storage.
-    /// Table partition key: Pk (String), e.g. "USER#&lt;sub&gt;".
-    /// </summary>
-    public sealed class UserProfileRepository : IUserProfileRepository
+    public class UserProfileRepository : IUserProfileRepository
     {
         private const string PkName = "Pk";
         private const string PkPrefix = "USER#";
+        private const string EmailIndexName = "EmailIndex";
 
-        private readonly IAmazonDynamoDB _client;
+        private readonly IAmazonDynamoDB _dynamoDB;
         private readonly string _tableName;
 
-        public UserProfileRepository(IAmazonDynamoDB client)
+        public UserProfileRepository(IAmazonDynamoDB dynamoDB)
         {
-            _client = client ?? throw new ArgumentNullException(nameof(client));
+            _dynamoDB = dynamoDB ?? throw new ArgumentNullException(nameof(dynamoDB));
             _tableName = Env.UserProfilesTable;
         }
 
-        public static string ToPk(string sub) => PkPrefix + sub;
-
-        public async Task<UserProfile> GetBySubAsync(string sub)
+        public async Task<UserProfile?> GetBySubAsync(string sub)
         {
-            if (string.IsNullOrWhiteSpace(sub))
-                throw new ArgumentException("Sub is required.", nameof(sub));
-
-            var pk = ToPk(sub);
-            var request = new GetItemRequest
+            if (string.IsNullOrWhiteSpace(sub)) return null;
+            var pk = PkPrefix + sub;
+            var req = new GetItemRequest
             {
                 TableName = _tableName,
-                Key = new Dictionary<string, AttributeValue>
-                {
-                    [PkName] = new AttributeValue { S = pk }
-                }
+                Key = new Dictionary<string, AttributeValue> { [PkName] = new AttributeValue(pk) }
             };
-
-            var response = await _client.GetItemAsync(request).ConfigureAwait(false);
-            if (response.Item == null || response.Item.Count == 0)
-                throw new InvalidOperationException($"User profile not found for sub: {sub}.");
-
-            return FromItem(response.Item);
+            var res = await _dynamoDB.GetItemAsync(req).ConfigureAwait(false);
+            return res.Item?.Count > 0 ? FromItem(res.Item) : null;
         }
 
-        public async Task PutAsync(UserProfile profile)
+        public async Task<UserProfile?> GetByEmailAsync(string email)
         {
-            if (profile == null)
-                throw new ArgumentNullException(nameof(profile));
-            if (string.IsNullOrWhiteSpace(profile.Sub))
-                throw new ArgumentException("Profile Sub is required.", nameof(profile));
-
-            var pk = string.IsNullOrWhiteSpace(profile.Pk) ? ToPk(profile.Sub) : profile.Pk;
-            var request = new PutItemRequest
+            if (string.IsNullOrWhiteSpace(email)) return null;
+            var req = new QueryRequest
             {
                 TableName = _tableName,
-                Item = ToItem(profile, pk)
+                IndexName = EmailIndexName,
+                KeyConditionExpression = "Email = :email",
+                ExpressionAttributeValues = new Dictionary<string, AttributeValue> { [":email"] = new AttributeValue(email.Trim()) }
             };
+            var res = await _dynamoDB.QueryAsync(req).ConfigureAwait(false);
+            var item = res.Items?.FirstOrDefault();
+            return item != null ? FromItem(item) : null;
+        }
 
-            await _client.PutItemAsync(request).ConfigureAwait(false);
+        public async Task<bool> CreateAsync(UserProfile userProfile)
+        {
+            if (userProfile == null || string.IsNullOrWhiteSpace(userProfile.Sub)) return false;
+            var pk = string.IsNullOrWhiteSpace(userProfile.Pk) ? PkPrefix + userProfile.Sub : userProfile.Pk;
+            var req = new PutItemRequest { TableName = _tableName, Item = ToItem(userProfile, pk) };
+            await _dynamoDB.PutItemAsync(req).ConfigureAwait(false);
+            return true;
+        }
+
+        public async Task<bool> UpdateAsync(UserProfile userProfile)
+        {
+            if (userProfile == null || string.IsNullOrWhiteSpace(userProfile.Pk)) return false;
+            var req = new PutItemRequest { TableName = _tableName, Item = ToItem(userProfile, userProfile.Pk) };
+            await _dynamoDB.PutItemAsync(req).ConfigureAwait(false);
+            return true;
         }
 
         private static UserProfile FromItem(Dictionary<string, AttributeValue> item)
         {
+            string GetS(string key) => item.TryGetValue(key, out var a) ? a.S ?? string.Empty : string.Empty;
             return new UserProfile
             {
-                Pk = item.TryGetValue(PkName, out var pk) ? pk.S : string.Empty,
-                Sub = item.TryGetValue("Sub", out var sub) ? sub.S : string.Empty,
-                Email = item.TryGetValue("Email", out var email) ? email.S : string.Empty,
-                Role = item.TryGetValue("Role", out var role) ? role.S : UserRoles.Customer,
-                CreatedAt = item.TryGetValue("CreatedAt", out var createdAt) ? createdAt.S : string.Empty
+                Pk = GetS(PkName),
+                Sub = GetS("Sub"),
+                FirstName = GetS("FirstName"),
+                LastName = GetS("LastName"),
+                Email = GetS("Email"),
+                PhoneNumber = GetS("PhoneNumber"),
+                Role = GetS("Role"),
+                CreatedAt = GetS("CreatedAt")
             };
         }
 
-        private static Dictionary<string, AttributeValue> ToItem(UserProfile profile, string pk)
+        private static Dictionary<string, AttributeValue> ToItem(UserProfile p, string pk)
         {
             return new Dictionary<string, AttributeValue>
             {
                 [PkName] = new AttributeValue(pk),
-                ["Sub"] = new AttributeValue(profile.Sub),
-                ["Email"] = new AttributeValue(profile.Email),
-                ["Role"] = new AttributeValue(profile.Role),
-                ["CreatedAt"] = new AttributeValue(profile.CreatedAt)
+                ["Sub"] = new AttributeValue(p.Sub),
+                ["FirstName"] = new AttributeValue(p.FirstName ?? string.Empty),
+                ["LastName"] = new AttributeValue(p.LastName ?? string.Empty),
+                ["Email"] = new AttributeValue(p.Email ?? string.Empty),
+                ["PhoneNumber"] = new AttributeValue(p.PhoneNumber ?? string.Empty),
+                ["Role"] = new AttributeValue(p.Role ?? string.Empty),
+                ["CreatedAt"] = new AttributeValue(p.CreatedAt ?? string.Empty)
             };
         }
     }

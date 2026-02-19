@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,6 +11,7 @@ namespace Function.Environment
         public static class Env
         {
             public static string UserProfilesTable => GetEnvironmentVariable("USER_PROFILES_TABLE");
+            public static string RoleAssignmentsTable => GetEnvironmentVariable("ROLE_ASSIGNMENTS_TABLE");
             public static string CognitoClientId => GetEnvironmentVariable("COGNITO_CLIENT_ID");
             public static string CognitoUserPoolId => GetEnvironmentVariable("COGNITO_USER_POOL_ID");
             public static string AwsRegion => GetEnvironmentVariable("AWS_REGION");

@@ -23,6 +23,32 @@ Resources:
       AttributeDefinitions:
         - AttributeName: Pk
           AttributeType: S
+        - AttributeName: Email
+          AttributeType: S
+      KeySchema:
+        - AttributeName: Pk
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: EmailIndex
+          KeySchema:
+            - AttributeName: Email
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Application
+          Value: VetClinic
+        - Key: Stage
+          Value: !Ref Stage
+
+  RoleAssignmentsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "vetclinic-role-assignments-${Stage}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: Pk
+          AttributeType: S
       KeySchema:
         - AttributeName: Pk
           KeyType: HASH
@@ -44,7 +70,13 @@ Resources:
         - Name: email
           Required: true
           Mutable: false
-        - Name: name
+        - Name: given_name
+          Required: true
+          Mutable: true
+        - Name: family_name
+          Required: true
+          Mutable: true
+        - Name: phone_number
           Required: false
           Mutable: true
       Policies:
@@ -83,11 +115,14 @@ Resources:
       Environment:
         Variables:
           USER_PROFILES_TABLE: !Ref UserProfilesTable
+          ROLE_ASSIGNMENTS_TABLE: !Ref RoleAssignmentsTable
           COGNITO_USER_POOL_ID: !Ref CognitoUserPool
           COGNITO_CLIENT_ID: !Ref CognitoUserPoolClient
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref UserProfilesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref RoleAssignmentsTable
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -102,6 +137,11 @@ Resources:
               Resource: !GetAtt CognitoUserPool.Arn
 
 Outputs:
+  RoleAssignmentsTableName:
+    Description: DynamoDB table for email-to-role assignments (Veterinarian/Receptionist/Admin)
+    Value: !Ref RoleAssignmentsTable
+    Export:
+      Name: !Sub "${AWS::StackName}-RoleAssignmentsTable"
   UserProfilesTableName:
     Description: DynamoDB table for user profiles
     Value: !Ref UserProfilesTable
