@@ -1,0 +1,5 @@
+.syndicate-config-dev/
+# Ignore the .syndicate-config-dev directory, which contains development configuration files for Syndicate.
+
+env/
+# Ignore the env directory, which may contain environment-specific configuration files or secrets.

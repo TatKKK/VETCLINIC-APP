@@ -1,0 +1,14 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\dnapp",
+    "\\dnapp\\lambdas",
+    "\\dnapp\\lambdas\\api_handler",
+    "\\dnapp\\lambdas\\api_handler\\Constants",
+    "\\dnapp\\lambdas\\api_handler\\Helpers",
+    "\\dnapp\\lambdas\\api_handler\\Models",
+    "\\dnapp\\lambdas\\api_handler\\test-events"
+  ],
+  "SelectedNode": "\\dnapp\\lambdas\\api_handler\\Function.slnx",
+  "PreviewInSolutionExplorer": false
+}

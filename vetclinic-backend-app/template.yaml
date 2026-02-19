@@ -1,0 +1,124 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: VetClinic API - Lambda, DynamoDB User Profiles, Cognito User Pool
+
+Parameters:
+  Stage:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+
+Globals:
+  Function:
+    Runtime: dotnet8
+    Timeout: 30
+    MemorySize: 256
+
+Resources:
+  UserProfilesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "vetclinic-user-profiles-${Stage}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: Pk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: Pk
+          KeyType: HASH
+      Tags:
+        - Key: Application
+          Value: VetClinic
+        - Key: Stage
+          Value: !Ref Stage
+
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub "vetclinic-users-${Stage}"
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      Schema:
+        - Name: email
+          Required: true
+          Mutable: false
+        - Name: name
+          Required: false
+          Mutable: true
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      Tags:
+        Application: VetClinic
+        Stage: !Ref Stage
+
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref CognitoUserPool
+      ClientName: !Sub "vetclinic-app-${Stage}"
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_SRP_AUTH
+      PreventUserExistenceErrors: ENABLED
+
+  ApiHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "vetclinic-api-handler-${Stage}"
+      CodeUri: dnapp/lambdas/api_handler/
+      Handler: SimpleLambdaFunction::SimpleLambdaFunction.Function::FunctionHandler
+      Environment:
+        Variables:
+          USER_PROFILES_TABLE: !Ref UserProfilesTable
+          COGNITO_USER_POOL_ID: !Ref CognitoUserPool
+          COGNITO_CLIENT_ID: !Ref CognitoUserPoolClient
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UserProfilesTable
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminCreateUser
+                - cognito-idp:AdminSetUserPassword
+                - cognito-idp:AdminGetUser
+                - cognito-idp:SignUp
+                - cognito-idp:InitiateAuth
+                - cognito-idp:AdminInitiateAuth
+                - cognito-idp:RespondToAuthChallenge
+              Resource: !GetAtt CognitoUserPool.Arn
+
+Outputs:
+  UserProfilesTableName:
+    Description: DynamoDB table for user profiles
+    Value: !Ref UserProfilesTable
+    Export:
+      Name: !Sub "${AWS::StackName}-UserProfilesTable"
+  CognitoUserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref CognitoUserPool
+    Export:
+      Name: !Sub "${AWS::StackName}-CognitoUserPoolId"
+  CognitoClientId:
+    Description: Cognito App Client ID
+    Value: !Ref CognitoUserPoolClient
+    Export:
+      Name: !Sub "${AWS::StackName}-CognitoClientId"
+  ApiHandlerFunctionArn:
+    Description: API Handler Lambda ARN
+    Value: !GetAtt ApiHandlerFunction.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-ApiHandlerArn"

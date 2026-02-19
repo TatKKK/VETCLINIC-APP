@@ -1,0 +1,12 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\vetclinic-backend-app",
+    "\\vetclinic-backend-app\\dnapp",
+    "\\vetclinic-backend-app\\dnapp\\lambdas",
+    "\\vetclinic-backend-app\\dnapp\\lambdas\\api_handler",
+    "\\vetclinic-backend-app\\dnapp\\lambdas\\api_handler\\Repositories"
+  ],
+  "SelectedNode": "\\vetclinic-backend-app\\dnapp\\lambdas\\api_handler\\Repositories\\Abstract",
+  "PreviewInSolutionExplorer": false
+}
