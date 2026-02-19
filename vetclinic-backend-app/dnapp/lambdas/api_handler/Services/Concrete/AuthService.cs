@@ -99,7 +99,7 @@ namespace Function.Services.Concrete
                     UserId = cognitoResponse.UserSub,
                     Email = request.Email,
                     Role = assignedRole,
-                    ConfirmationRequired = !cognitoResponse.UserConfirmed,
+                    ConfirmationRequired = !(cognitoResponse.UserConfirmed ?? false),
                     Message = "Registration successful"
                 };
             }
@@ -147,7 +147,7 @@ namespace Function.Services.Concrete
                 IdToken = authResponse.AuthenticationResult.IdToken,
                 AccessToken = authResponse.AuthenticationResult.AccessToken,
                 RefreshToken = authResponse.AuthenticationResult.RefreshToken ?? string.Empty,
-                ExpiresIn = authResponse.AuthenticationResult.ExpiresIn,
+                ExpiresIn = authResponse.AuthenticationResult.ExpiresIn ?? 0,
                 TokenType = "Bearer",
                 User = userInfo
             };
